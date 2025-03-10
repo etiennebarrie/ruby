@@ -305,6 +305,20 @@ vm_icc_has_entry(const struct iseq_inline_constant_cache *cc)
     return vm_icc_flags(cc) & IMEMO_CONST_CACHE_HAS_ENTRY;
 }
 
+static inline bool
+vm_icc_is_set(const struct iseq_inline_constant_cache *cc)
+{
+    return !UNDEF_P(cc->value);
+}
+
+static inline void
+vm_icc_reset(struct iseq_inline_constant_cache *cc)
+{
+    if (!UNDEF_P(cc->value)) {
+        cc->value = Qundef;
+    }
+}
+
 static inline void
 vm_icc_init(struct iseq_inline_constant_cache *cc, const ID *segments)
 {
