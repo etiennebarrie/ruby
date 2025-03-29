@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+target_configure_args='---
+_:
+  - --disable-shared
+  - --disable-install-doc
+  - --with-ext=openssl,psych,json,+
+  - cflags=-march=native
+
+debug:
+  - --enable-devel
+  - --enable-debug-env
+  - cppflags=-DRUBY_DEBUG=1 -DUSE_RUBY_DEBUG_LOG=1
+  - optflags=-O0 -fno-omit-frame-pointer
+release: []
+'
+
+targets=()
+if [[ $# = 0 ]]; then
+	targets=(debug release)
+fi
+for target do
+	case $target in
+		(debug)   targets+=(debug); shift;;
+		(release) targets+=(release); shift;;
+	esac
+done
+
+git config alias.build >/dev/null || git config alias.build '!f(){ git show origin/HEAD:build | bash -s - "$@";};f'
+mkdir -p target
+git check-ignore -q target || echo '/target/' >> "$(git rev-parse --git-common-dir)/info/exclude"
+fail() {
+	set +x
+	>&2 echo "[$1] $2 failed"
+	return 1
+}
+
+trap -- exit INT
+set -x
+
+configure_args=(--cache-file="config.cache")
+if [[ $(uname -s) = Darwin ]]; then
+	brew install autoconf openssl@3 libyaml gmp
+	configure_args+=(
+		--with-libyaml-dir="$(brew --prefix libyaml)"
+		--with-openssl-dir="$(brew --prefix openssl@3)"
+		--with-gmp-dir="$(brew --prefix gmp)"
+	)
+elif type apt-get &>/dev/null; then
+	sudo apt-get install --yes --no-install-recommends autoconf openssl libyaml-dev libgmp-dev zlib1g-dev
+elif type pacman &>/dev/null; then
+	sudo pacman -Sy --needed autoconf gmp libyaml zlib
+fi
+
+target_args() {
+	ruby -ryaml -e 'puts YAML.load(STDIN).fetch(ARGV.shift)' "${1-_}" <<< "${target_configure_args}"
+}
+
+readarray -tO"${#configure_args[@]}" configure_args < <(target_args)
+
+./autogen.sh
+nproc=$(getconf _NPROCESSORS_ONLN)
+
+build() {
+	target=$1; shift
+	target_args=("$@")
+	target_args+=(--prefix="$HOME/.ruby/$target")
+	mkdir -p target/"$target"
+	cd target/"$target"
+	./config.status --recheck ||
+		../../configure "${configure_args[@]}" "${target_args[@]}" ||
+		fail "$target" configure
+	make -j "$nproc" || fail "$target" configure
+	cd -
+}
+
+for target in "${targets[@]}"; do
+	readarray -t target_args < <(target_args "$target")
+	build "$target" "${target_args[@]}"
+done
+
+[[ $# = 0 ]] && exit
+
+build "$@"
