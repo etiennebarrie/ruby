@@ -659,7 +659,10 @@ static void add_opt_method_entry(const rb_method_entry_t *me);
 
 #include "vm_exec.c"
 
+#ifndef RUBY_VM_METHOD_INC
+#define RUBY_VM_METHOD_INC
 #include "vm_method.c"
+#endif
 #include "vm_eval.c"
 
 #define PROCDEBUG 0

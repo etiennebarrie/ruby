@@ -22,6 +22,23 @@ static inline rb_method_entry_t *lookup_method_table(VALUE klass, ID id);
 #define ruby_running (GET_VM()->running)
 /* int ruby_running = 0; */
 
+// This only so this file can be linted on its own.
+#ifndef RUBY_VM_METHOD_INC
+#define RUBY_VM_METHOD_INC
+static const rb_callable_method_entry_t * callable_method_entry_refinements0(VALUE klass, ID id, VALUE *defined_class_ptr, bool with_refinements, const rb_callable_method_entry_t *cme);
+static VALUE call_method_entry(rb_execution_context_t *ec, VALUE defined_class, VALUE obj, ID id, const rb_callable_method_entry_t *cme, int argc, const VALUE *argv, int kw_splat);
+static int method_boundp(VALUE klass, ID id, int ex);
+enum method_bounds {
+    BOUND_PRIVATE  = 0x01,
+    BOUND_RESPONDS = 0x02,
+};
+static int vm_respond_to(rb_execution_context_t *ec, VALUE klass, VALUE obj, ID id, int priv);
+static VALUE basic_obj_respond_to_missing(rb_execution_context_t *ec, VALUE klass, VALUE obj, VALUE mid, VALUE priv);
+static const rb_callable_method_entry_t * callable_method_entry(VALUE klass, ID mid, VALUE *defined_class_ptr);
+static const struct st_hash_type vm_ci_hashtype;
+#include "vm.c"
+#endif
+
 static enum rb_id_table_iterator_result
 mark_cc_entry_i(VALUE ccs_ptr, void *data)
 {
