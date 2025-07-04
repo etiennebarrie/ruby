@@ -53,7 +53,21 @@ typedef struct rb_cref_struct {
 /* method data type */
 
 typedef struct rb_method_entry_struct {
+#if RUBY_DEBUG
+    union {
+        VALUE flags;
+        struct {
+            unsigned imemo_flags:16;
+            rb_method_visibility_t visibility:2;
+            bool basic:1;
+            bool complemented:1;
+            bool cached:1;
+            bool invalidated:1;
+        } flag;
+    };
+#else
     VALUE flags;
+#endif
     VALUE defined_class;
     struct rb_method_definition_struct * const def;
     ID called_id;
@@ -61,7 +75,21 @@ typedef struct rb_method_entry_struct {
 } rb_method_entry_t;
 
 typedef struct rb_callable_method_entry_struct { /* same fields with rb_method_entry_t */
+#if RUBY_DEBUG
+    union {
+        VALUE flags;
+        struct {
+            unsigned imemo_flags:16;
+            rb_method_visibility_t visibility:2;
+            bool basic:1;
+            bool complemented:1;
+            bool cached:1;
+            bool invalidated:1;
+        } flag;
+    };
+#else
     VALUE flags;
+#endif
     const VALUE defined_class;
     struct rb_method_definition_struct * const def;
     ID called_id;

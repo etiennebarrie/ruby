@@ -83,6 +83,26 @@ struct rb_callinfo {
 #define CI_EMBED_ARGC_bits 15
 #define CI_EMBED_FLAG_bits 16
 #define CI_EMBED_ID_bits   32
+#if RUBY_DEBUG
+struct rb_callinfo_packed {
+    bool packed:1;
+    unsigned int argc:15;
+    bool args_splat:1;
+    bool args_blockarg:1;
+    bool fcall:1;
+    bool vcall:1;
+    bool args_simple:1;
+    bool kwarg:1;
+    bool kw_splat:1;
+    bool tailcall:1;
+    bool super:1;
+    bool zsuper:1;
+    bool opt_send:1;
+    bool kw_splat_mut:1;
+    bool args_splat_mut:1;
+    bool forwarding:1;
+};
+#endif
 #elif SIZEOF_VALUE == 4
 #define CI_EMBED_TAG_bits   1
 #define CI_EMBED_ARGC_bits  3
@@ -275,8 +295,28 @@ typedef VALUE (*vm_call_handler)(
 
 // imemo_callcache
 
+enum vm_cc_type {
+    cc_type_normal, // chained from ccs
+    cc_type_super,
+    cc_type_refinement,
+};
+
 struct rb_callcache {
+#if RUBY_DEBUG
+    union {
+        const VALUE flags;
+        struct {
+            unsigned imemo_flags:16;
+            bool ivar:1;
+            bool bf:1;
+            enum vm_cc_type type:2;
+            bool unmarkable:1;
+            bool on_stack:1;
+        } flag;
+    };
+#else
     const VALUE flags;
+#endif
 
     /* inline cache: key */
     const VALUE klass; // Weak reference. When klass is collected, `cc->klass = Qundef`.
@@ -303,12 +343,6 @@ struct rb_callcache {
 #define VM_CALLCACHE_UNMARKABLE IMEMO_FL_USER4
 #define VM_CALLCACHE_ON_STACK   IMEMO_FL_USER5
 #define VM_CALLCACHE_INVALID_SUPER IMEMO_FL_USER6
-
-enum vm_cc_type {
-    cc_type_normal, // chained from ccs
-    cc_type_super,
-    cc_type_refinement,
-};
 
 extern const struct rb_callcache *rb_vm_empty_cc(void);
 extern const struct rb_callcache *rb_vm_empty_cc_for_super(void);
@@ -575,7 +609,14 @@ vm_cc_invalidate(const struct rb_callcache *cc)
 /* calldata */
 
 struct rb_call_data {
+#if RUBY_DEBUG
+    union {
+        const struct rb_callinfo *ci;
+        struct rb_callinfo_packed packed_ci;
+    };
+#else
     const struct rb_callinfo *ci;
+#endif
     const struct rb_callcache *cc;
 };
 
