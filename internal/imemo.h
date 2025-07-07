@@ -113,7 +113,50 @@ struct rb_imemo_cdhash {
  * @see imemo_type
  * */
 struct MEMO {
-    VALUE flags;
+    union {
+        struct {
+            VALUE flags;
+        };
+        struct {
+            union {
+                VALUE flags;
+                struct {
+                    unsigned basic_flags:12;
+                    enum imemo_type imemo_type:4;
+                    union {
+                        struct {
+                            bool ivar:1;
+                            bool bf:1;
+                            enum {
+                                vm_cc_type_normal, // chained from ccs
+                                vm_cc_type_super,
+                                vm_cc_type_refinement,
+                            } type:2;
+                            bool unmarkable:1;
+                            bool on_stack:1;
+                        } callcache;
+                        struct {
+                            enum {
+                                VISI_UNDEF     = 0x00,
+                                VISI_PUBLIC    = 0x01,
+                                VISI_PRIVATE   = 0x02,
+                                VISI_PROTECTED = 0x03,
+                            } visibility:2;
+                            bool basic:1;
+                            bool complemented:1;
+                            bool cached:1;
+                            bool invalidated:1;
+                        } ment;
+                    };
+                };
+            } flag;
+            union {
+                struct {
+                    enum ruby_value_type rbasic_type:5;
+                };
+            } rbasic;
+        };
+    };
     const VALUE v1;
     const VALUE v2;
     union {
