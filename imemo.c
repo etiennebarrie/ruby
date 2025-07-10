@@ -346,8 +346,8 @@ rb_imemo_mark_and_move(VALUE obj, bool reference_updating)
       case imemo_callcache: {
         /* cc is callcache.
          *
-         * cc->klass (klass) should not be marked because if the klass is
-         * free'ed, the cc->klass will be cleared by `vm_cc_invalidate()`.
+         * cc->klass (klass) is weakly marked, allowing callcaches to be
+         * invalidated when the class is dead.
          *
          * cc->cme (cme) should not be marked because if cc is invalidated
          * when cme is free'ed.
@@ -365,7 +365,7 @@ rb_imemo_mark_and_move(VALUE obj, bool reference_updating)
          */
         struct rb_callcache *cc = (struct rb_callcache *)obj;
         if (reference_updating) {
-            if (!cc->klass) {
+            if (!cc->klass || cc->klass == Qundef) {
                 // already invalidated
             }
             else {
@@ -381,7 +381,7 @@ rb_imemo_mark_and_move(VALUE obj, bool reference_updating)
             }
         }
         else {
-            if (cc->klass && (vm_cc_super_p(cc) || vm_cc_refinement_p(cc))) {
+            if (cc->klass && cc->klass != Qundef && (vm_cc_super_p(cc) || vm_cc_refinement_p(cc))) {
                 rb_gc_mark_movable((VALUE)cc->cme_);
                 rb_gc_mark_movable((VALUE)cc->klass);
             }

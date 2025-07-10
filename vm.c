@@ -3099,7 +3099,7 @@ rb_vm_mark(void *ptr)
 
             if (cc != NULL) {
                 if (!vm_cc_invalidated_p(cc)) {
-                    rb_gc_mark((VALUE)cc);
+                    rb_gc_mark_weak((VALUE *)&cc);
                 }
                 else {
                     vm->global_cc_cache_table[i] = NULL;

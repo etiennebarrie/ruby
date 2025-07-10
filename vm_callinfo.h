@@ -384,7 +384,7 @@ static inline bool
 vm_cc_class_check(const struct rb_callcache *cc, VALUE klass)
 {
     VM_ASSERT(IMEMO_TYPE_P(cc, imemo_callcache));
-    VM_ASSERT(cc->klass == 0 ||
+    VM_ASSERT(cc->klass == 0 || cc->klass == Qundef ||
               RB_TYPE_P(cc->klass, T_CLASS) || RB_TYPE_P(cc->klass, T_ICLASS));
     return cc->klass == klass;
 }
@@ -447,7 +447,7 @@ vm_cc_cmethod_missing_reason(const struct rb_callcache *cc)
 static inline bool
 vm_cc_invalidated_p(const struct rb_callcache *cc)
 {
-    if (cc->klass && !METHOD_ENTRY_INVALIDATED(vm_cc_cme(cc))) {
+    if (cc->klass && cc->klass != Qundef && !METHOD_ENTRY_INVALIDATED(vm_cc_cme(cc))) {
         return false;
     }
     else {

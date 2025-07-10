@@ -437,7 +437,7 @@ invalidate_cc_refinement(st_data_t key, st_data_t data)
 
         VM_ASSERT(vm_cc_refinement_p(cc));
 
-        if (cc->klass) {
+        if (cc->klass && cc->klass != Qundef) {
             vm_cc_invalidate(cc);
         }
     }
