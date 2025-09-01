@@ -4247,6 +4247,12 @@ vm_keep_script_lines_set(VALUE self, VALUE flags)
     return flags;
 }
 
+static VALUE
+vm_debug(int argc, VALUE *argv, VALUE _self)
+{
+    return argv[0];
+}
+
 void
 Init_VM(void)
 {
@@ -4271,6 +4277,7 @@ Init_VM(void)
     rb_define_singleton_method(rb_cRubyVM, "stat", vm_stat, -1);
     rb_define_singleton_method(rb_cRubyVM, "keep_script_lines", vm_keep_script_lines, 0);
     rb_define_singleton_method(rb_cRubyVM, "keep_script_lines=", vm_keep_script_lines_set, 1);
+    rb_define_singleton_method(rb_cRubyVM, "debug", vm_debug, -1);
 
 #if USE_DEBUG_COUNTER
     rb_define_singleton_method(rb_cRubyVM, "reset_debug_counters", rb_debug_counter_reset, 0);
