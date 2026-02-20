@@ -78,7 +78,17 @@ RBasic {
      * @note  This is ::VALUE rather than  an enum for alignment purposes.  Back
      *        in the 1990s there were no such thing like `_Alignas` in C.
      */
-    VALUE flags;
+    union {
+        VALUE flags;
+        struct {
+            unsigned zeros: 5;
+            bool promoted:1;
+            unsigned basic_flags:2;
+            bool shareable:1;
+            unsigned unused:2;
+            bool frozen:1;
+        } flag;
+    };
 
     /**
      * Class of an object.  Every object has its class.  Also, everything is an
