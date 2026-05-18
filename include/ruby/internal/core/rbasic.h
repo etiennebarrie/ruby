@@ -117,7 +117,11 @@ RBasic {
     }
 # define RBASIC_INIT RBasic()
 #else
-# define RBASIC_INIT {RBIMPL_VALUE_NULL}
+# if RBASIC_SHAPE_ID_FIELD
+#  define RBASIC_INIT { .flags = RBIMPL_VALUE_NULL, .klass = RBIMPL_VALUE_NULL, .shape_id = RBIMPL_VALUE_NULL }
+# else
+#  define RBASIC_INIT { .flags = RBIMPL_VALUE_NULL, .klass = RBIMPL_VALUE_NULL }
+# endif
 #endif
 };
 
