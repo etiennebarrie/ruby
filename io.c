@@ -1113,6 +1113,7 @@ io_alloc(VALUE klass)
 {
     UNPROTECTED_NEWOBJ_OF(io, struct RFile, klass, T_FILE, sizeof(struct RFile));
 
+    io->pathv = 0;
     io->fptr = 0;
 
     return (VALUE)io;
@@ -7223,6 +7224,14 @@ io_set_encoding_by_bom(VALUE io)
     return extenc;
 }
 
+static inline void
+io_set_pathv(VALUE io, VALUE pathv)
+{
+    RUBY_ASSERT(RFILE(io)->fptr);
+    RFILE(io)->fptr->pathv = pathv;
+    RFILE(io)->pathv = pathv;
+}
+
 static VALUE
 rb_file_open_generic(VALUE io, VALUE filename, int oflags, enum rb_io_mode fmode,
                      const struct rb_io_encoding *convconfig, mode_t perm)
@@ -7246,10 +7255,10 @@ rb_file_open_generic(VALUE io, VALUE filename, int oflags, enum rb_io_mode fmode
     pathv = rb_str_new_frozen(filename);
 #ifdef O_TMPFILE
     if (!(oflags & O_TMPFILE)) {
-        fptr->pathv = pathv;
+        io_set_pathv(io, pathv);
     }
 #else
-    fptr->pathv = pathv;
+    io_set_pathv(io, pathv);
 #endif
     fptr->fd = rb_sysopen(pathv, oflags, perm);
     io_check_tty(fptr);
@@ -8377,8 +8386,8 @@ io_reopen(VALUE io, VALUE nfile)
     fptr->encs = orig->encs;
     fptr->pid = orig->pid;
     fptr->lineno = orig->lineno;
-    if (RTEST(orig->pathv)) fptr->pathv = orig->pathv;
-    else if (!RUBY_IO_EXTERNAL_P(fptr)) fptr->pathv = Qnil;
+    if (RTEST(orig->pathv)) io_set_pathv(io, orig->pathv);
+    else if (!RUBY_IO_EXTERNAL_P(fptr)) io_set_pathv(io, Qnil);
     fptr_copy_finalizer(fptr, orig);
 
     fd = fptr->fd;
@@ -8511,7 +8520,7 @@ rb_io_reopen(int argc, VALUE *argv, VALUE file)
         oflags = rb_io_fmode_oflags(fptr->mode);
     }
 
-    fptr->pathv = fname;
+    io_set_pathv(file, fname);
     if (fptr->fd < 0) {
         fptr->fd = rb_sysopen(fptr->pathv, oflags, 0666);
         fptr->stdio_file = 0;
@@ -8586,7 +8595,7 @@ rb_io_init_copy(VALUE dest, VALUE io)
     fptr->wakeup_mutex = Qnil;
     fptr->fork_generation = GET_VM()->fork_gen;
 
-    if (!NIL_P(orig->pathv)) fptr->pathv = orig->pathv;
+    if (!NIL_P(orig->pathv)) io_set_pathv(dest, orig->pathv);
     fptr_copy_finalizer(fptr, orig);
 
     fd = ruby_dup(orig->fd);
@@ -9302,11 +9311,11 @@ rb_io_open_descriptor(VALUE klass, int descriptor, int mode, VALUE path, VALUE t
        in the rest of this method. */
 
     if (NIL_P(path)) {
-        io->pathv = Qnil;
+        io_set_pathv(self, Qnil);
     }
     else {
         StringValue(path);
-        io->pathv = rb_str_new_frozen(path);
+        io_set_pathv(self, rb_str_new_frozen(path));
     }
 
     io->timeout = timeout;

@@ -3553,7 +3553,8 @@ rb_gc_mark_children(void *objspace, VALUE obj)
         break;
       }
 
-      case T_FILE:
+      case T_FILE: {
+        gc_mark_internal(RFILE(obj)->pathv);
         if (RFILE(obj)->fptr) {
             gc_mark_internal(RFILE(obj)->fptr->self);
             gc_mark_internal(RFILE(obj)->fptr->pathv);
@@ -3566,6 +3567,7 @@ rb_gc_mark_children(void *objspace, VALUE obj)
             gc_mark_internal(RFILE(obj)->fptr->wakeup_mutex);
         }
         break;
+      }
 
       case T_REGEXP:
         gc_mark_internal(RREGEXP(obj)->src);
@@ -4487,6 +4489,7 @@ rb_gc_update_object_references(void *objspace, VALUE obj)
         break;
 
       case T_FILE:
+        UPDATE_IF_MOVED(objspace, RFILE(obj)->pathv);
         if (RFILE(obj)->fptr) {
             UPDATE_IF_MOVED(objspace, RFILE(obj)->fptr->self);
             UPDATE_IF_MOVED(objspace, RFILE(obj)->fptr->pathv);

@@ -37,6 +37,9 @@ struct RFile {
     /** Basic part, including flags and class. */
     struct RBasic basic;
 
+    /** pathname for file. */
+    VALUE pathv;
+
     /** IO's specific fields. */
     struct rb_io *fptr;
 };
