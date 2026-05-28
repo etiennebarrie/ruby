@@ -824,6 +824,7 @@ VALUE
 rb_io_get_write_io(VALUE io)
 {
     VALUE write_io;
+
     write_io = rb_io_get_fptr(io)->tied_io_for_writing;
     if (write_io) {
         return write_io;
@@ -3002,12 +3003,7 @@ rb_io_pid(VALUE io)
 VALUE
 rb_io_path(VALUE io)
 {
-    rb_io_t *fptr = RFILE(io)->fptr;
-
-    if (!fptr)
-        return Qnil;
-
-    return rb_obj_dup(fptr->pathv);
+    return rb_obj_dup(RFILE(io)->pathv);
 }
 
 /*
@@ -5786,6 +5782,16 @@ rb_io_close(VALUE io)
     return Qnil;
 }
 
+static void
+io_close_finalize(VALUE obj)
+{
+    if (RFILE(obj)->fptr) {
+        rb_io_close(obj);
+        rb_io_fptr_finalize(RFILE(obj)->fptr);
+        RFILE(obj)->fptr = 0;
+    }
+}
+
 /*
  *  call-seq:
  *    close -> nil
@@ -5824,11 +5830,11 @@ rb_io_close(VALUE io)
 static VALUE
 rb_io_close_m(VALUE io)
 {
-    rb_io_t *fptr = rb_io_get_fptr(io);
-    if (fptr->fd < 0) {
+    rb_io_t *fptr = RFILE(io)->fptr;
+    if (!fptr || fptr->fd < 0) {
         return Qnil;
     }
-    rb_io_close(io);
+    io_close_finalize(io);
     return Qnil;
 }
 
@@ -5889,20 +5895,20 @@ io_close(VALUE io)
 VALUE
 rb_io_closed_p(VALUE io)
 {
-    rb_io_t *fptr;
-    VALUE write_io;
-    rb_io_t *write_fptr;
+    rb_io_t *fptr = RFILE(io)->fptr;
+    VALUE write_io = 0;
 
-    write_io = GetWriteIO(io);
-    if (io != write_io) {
-        write_fptr = RFILE(write_io)->fptr;
+    if (fptr) {
+        write_io = fptr->tied_io_for_writing;
+    }
+    if (write_io && io != write_io) {
+        rb_io_t *write_fptr = RFILE(write_io)->fptr;
         if (write_fptr && 0 <= write_fptr->fd) {
             return Qfalse;
         }
     }
 
-    fptr = rb_io_get_fptr(io);
-    return RBOOL(0 > fptr->fd);
+    return RBOOL(fptr == NULL || 0 > fptr->fd);
 }
 
 /*
@@ -9477,11 +9483,7 @@ rb_io_make_open_file(VALUE obj)
     rb_io_t *fp = 0;
 
     Check_Type(obj, T_FILE);
-    if (RFILE(obj)->fptr) {
-        rb_io_close(obj);
-        rb_io_fptr_finalize(RFILE(obj)->fptr);
-        RFILE(obj)->fptr = 0;
-    }
+    io_close_finalize(obj);
     fp = rb_io_fptr_new();
     fp->self = obj;
     RFILE(obj)->fptr = fp;
@@ -9597,7 +9599,7 @@ io_initialize(VALUE io, VALUE fnum, VALUE vmode, VALUE opt)
     fp->fd = fd;
     fp->mode = fmode;
     fp->encs = convconfig;
-    fp->pathv = path;
+    io_set_pathv(io, path);
     fp->timeout = Qnil;
     ccan_list_head_init(&fp->blocking_operations);
     fp->closing_ec = NULL;
@@ -13524,6 +13526,9 @@ rb_io_external_encoding(VALUE io)
 {
     rb_io_t *fptr = RFILE(rb_io_taint_check(io))->fptr;
 
+    if (!fptr) {
+        return Qnil;
+    }
     if (fptr->encs.enc2) {
         return rb_enc_from_encoding(fptr->encs.enc2);
     }
@@ -13552,7 +13557,7 @@ rb_io_internal_encoding(VALUE io)
 {
     rb_io_t *fptr = RFILE(rb_io_taint_check(io))->fptr;
 
-    if (!fptr->encs.enc2) return Qnil;
+    if (!fptr || !fptr->encs.enc2) return Qnil;
     return rb_enc_from_encoding(io_read_encoding(fptr));
 }
 
