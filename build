@@ -30,12 +30,13 @@ release: []
 
 targets=()
 [[ $# != 0 ]] || targets=(debug release)
-
+candidates=$(ruby -ryaml -e 'puts YAML.load(STDIN, aliases: true).keys - ["_"]' "${1-_}" \
+	<<< "$target_configure_args"
+)
+readarray -t candidates <<< "$candidates"
+echo "${candidates[@]}"
 for target do
-	case $target in
-		(debug)   targets+=(debug); shift;;
-		(release) targets+=(release); shift;;
-	esac
+	[[ " ${candidates[*]} " =~ $target ]] && targets+=("$target");
 done
 
 mkdir -p target
