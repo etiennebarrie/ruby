@@ -1,26 +1,36 @@
 #!/usr/bin/env bash
 
+# Install as `build` Git alias:
+#     git config alias.build '!f(){ git show origin/HEAD:build | bash -s - "$@";};f'
+#
+# Build debug & release targets
+#     git build
+# Build a single target
+#     git build debug
+# Build a new target with configure options and variables
+#     git build gcc CC=gcc
+
 set -euo pipefail
 
 target_configure_args='---
 _:
-  - --disable-shared
-  - --disable-install-doc
-  - --with-ext=openssl,psych,json,+
-  - cflags=-march=native
+- --disable-shared
+- --disable-install-doc
+- --with-ext=openssl,psych,json,+
+- cflags=-march=native
 
 debug:
-  - --enable-devel
-  - --enable-debug-env
-  - cppflags=-DRUBY_DEBUG=1 -DUSE_RUBY_DEBUG_LOG=1
-  - optflags=-O0 -fno-omit-frame-pointer
+- --enable-devel
+- --enable-debug-env
+- cppflags=-DRUBY_DEBUG=1 -DUSE_RUBY_DEBUG_LOG=1
+- optflags=-O0 -fno-omit-frame-pointer
+
 release: []
 '
 
 targets=()
-if [[ $# = 0 ]]; then
-	targets=(debug release)
-fi
+[[ $# != 0 ]] || targets=(debug release)
+
 for target do
 	case $target in
 		(debug)   targets+=(debug); shift;;
@@ -28,12 +38,13 @@ for target do
 	esac
 done
 
-git config alias.build >/dev/null || git config alias.build '!f(){ git show origin/HEAD:build | bash -s - "$@";};f'
 mkdir -p target
 git check-ignore -q target || echo '/target/' >> "$(git rev-parse --git-common-dir)/info/exclude"
 fail() {
 	set +x
-	>&2 echo "[$1] $2 failed"
+	local target=$1
+	shift
+	>&2 echo "[$target] $*"
 	return 1
 }
 
@@ -69,10 +80,16 @@ build() {
 	target_args+=(--prefix="$HOME/.ruby/$target")
 	mkdir -p target/"$target"
 	cd target/"$target"
+	if [[ ${DEBUG-} ]]; then
+		./config.status --config 2>/dev/null ||:
+		printf "%b\n" "${configure_args[@]}" "${target_args[@]}"
+		cd -
+		return
+	fi
 	./config.status --recheck ||
 		../../configure "${configure_args[@]}" "${target_args[@]}" ||
-		fail "$target" configure
-	make -j "$nproc" || fail "$target" configure
+		fail "$target" configure failed
+	make -j "$nproc" || fail "$target" make failed
 	cd -
 }
 
@@ -82,5 +99,6 @@ for target in "${targets[@]}"; do
 done
 
 [[ $# = 0 ]] && exit
+[[ $# = 1 ]] && fail "$1" no configure option or variable
 
 build "$@"
