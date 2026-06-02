@@ -69,7 +69,8 @@ target_args() {
 	ruby -ryaml -e 'puts YAML.load(STDIN).fetch(ARGV.shift)' "${1-_}" <<< "${target_configure_args}"
 }
 
-readarray -tO"${#configure_args[@]}" configure_args < <(target_args)
+args=$(target_args)
+readarray -tO"${#configure_args[@]}" configure_args <<< "$args"
 
 ./autogen.sh
 nproc=$(getconf _NPROCESSORS_ONLN)
@@ -94,7 +95,8 @@ build() {
 }
 
 for target in "${targets[@]}"; do
-	readarray -t target_args < <(target_args "$target")
+	args=$(target_args "$target")
+	readarray -t target_args <<< "$args"
 	build "$target" "${target_args[@]}"
 done
 
