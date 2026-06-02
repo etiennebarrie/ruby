@@ -25,6 +25,11 @@ debug: &debug
 - cppflags=-DRUBY_DEBUG=1 -DUSE_RUBY_DEBUG_LOG=1
 - optflags=-O0 -fno-omit-frame-pointer
 
+jit:
+- --enable-yjit=dev
+- --enable-zjit=dev
+- *debug
+
 release: []
 '
 
