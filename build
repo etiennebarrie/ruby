@@ -19,7 +19,7 @@ _:
 - --with-ext=openssl,psych,json,+
 - cflags=-march=native
 
-debug:
+debug: &debug
 - --enable-devel
 - --enable-debug-env
 - cppflags=-DRUBY_DEBUG=1 -DUSE_RUBY_DEBUG_LOG=1
@@ -67,7 +67,8 @@ elif type pacman &>/dev/null; then
 fi
 
 target_args() {
-	ruby -ryaml -e 'puts YAML.load(STDIN).fetch(ARGV.shift)' "${1-_}" <<< "${target_configure_args}"
+	ruby -ryaml -e 'puts YAML.load(STDIN, aliases: true).fetch(ARGV.shift).flatten' "${1-_}" \
+		<<< "$target_configure_args"
 }
 
 args=$(target_args)
