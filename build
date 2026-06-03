@@ -39,9 +39,13 @@ candidates=$(ruby -ryaml -e 'puts YAML.load(STDIN, aliases: true).keys - ["_"]' 
 	<<< "$target_configure_args"
 )
 readarray -t candidates <<< "$candidates"
-echo "${candidates[@]}"
 for target do
-	[[ " ${candidates[*]} " =~ $target ]] && targets+=("$target");
+	if [[ " ${candidates[*]} " =~ $target ]]; then
+		targets+=("$target")
+		shift
+	else
+		break
+	fi
 done
 
 mkdir -p target
