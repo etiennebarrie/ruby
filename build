@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Install as `build` Git alias:
-#     git config alias.build '!f(){ git show origin/HEAD:build | bash -s - "$@";};f'
+#     git config alias.build '!git show origin/HEAD:build | bash -s -'
 #
 # Build debug & release targets
 #     git build
@@ -80,8 +80,7 @@ target_args() {
 		<<< "$target_configure_args"
 }
 
-args=$(target_args)
-readarray -tO"${#configure_args[@]}" configure_args <<< "$args"
+readarray -tO"${#configure_args[@]}" configure_args <<< "$(target_args)"
 
 ./autogen.sh
 nproc=$(getconf _NPROCESSORS_ONLN)
@@ -106,8 +105,7 @@ build() {
 }
 
 for target in "${targets[@]}"; do
-	args=$(target_args "$target")
-	readarray -t target_args <<< "$args"
+	readarray -t target_args <<< "$(target_args "$target")"
 	build "$target" "${target_args[@]}"
 done
 
