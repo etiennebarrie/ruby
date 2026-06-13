@@ -88,9 +88,9 @@ nproc=$(getconf _NPROCESSORS_ONLN)
 build() {
 	target=$1; shift
 	target_args=("$@")
-	target_args+=(--prefix="$HOME/.ruby/$target")
 	mkdir -p target/"$target"
 	cd target/"$target"
+	target_args+=(--prefix="$PWD/-")
 	if [[ ${DEBUG-} ]]; then
 		./config.status --config 2>/dev/null ||:
 		printf "%b\n" "${configure_args[@]}" "${target_args[@]}"
