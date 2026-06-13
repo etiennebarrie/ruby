@@ -30,6 +30,10 @@ jit:
 - --enable-zjit=dev
 - *debug
 
+asan:
+- cflags=-fsanitize=address
+- cppflags=-DUSE_MN_THREADS=0
+
 release: []
 '
 
