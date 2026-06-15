@@ -7,10 +7,10 @@ var ale_c_include_dirs = ['include', 'prism', 'target/debug', 'target/debug/.ext
 ale_c_include_dirs += glob('target/debug/.ext/include/*', false, true)->filter((_, dir) => isdirectory(dir) && filereadable(dir .. '/ruby/config.h'))
 b:ale_c_cc_options = ale_c_include_dirs->mapnew((_, dir) => '-I' .. dir)->add('-DRUBY_DEBUG=1')->join(' ')
 
-const ruby_bug_pattern = '\[Bug #\zs\d\+\ze\]'
+const ruby_bug_pattern = '\[\(Bug\|Feature\) #\zs\d\+\ze\]'
 
 def RubyBugAtCursor(): string
-  return matchstr(getline('.'), '\%<' .. (col('.') + 1) .. 'c\[Bug #\zs\d\+\ze\]\%>' .. col('.') .. 'c')
+  return matchstr(getline('.'), '\%<' .. (col('.') + 1) .. 'c' .. ruby_bug_pattern .. '\%>' .. col('.') .. 'c')
 enddef
 
 def RubyBug(bang: bool)
